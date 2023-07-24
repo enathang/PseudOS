@@ -41,4 +41,7 @@ SECTIONS {
 	} >ram AT>ram :bss
 
 	PROVIDE(_memory_start = ORIGIN(ram));
+	PROVIDE(_memory_end = _memory_start + LENGTH(ram));
+	PROVIDE(_page_table_start = _memory_end - 0x1000);
+	PROVIDE(_sample_page = _page_table_start - 0x1000);
 }
