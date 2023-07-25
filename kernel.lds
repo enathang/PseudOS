@@ -42,6 +42,6 @@ SECTIONS {
 
 	PROVIDE(_memory_start = ORIGIN(ram));
 	PROVIDE(_memory_end = _memory_start + LENGTH(ram));
-	PROVIDE(_page_table_start = _memory_end - 0x1000);
-	PROVIDE(_sample_page = _page_table_start - 0x1000);
+	PROVIDE(_heap_end = _memory_end - 4096);
+	PROVIDE(_heap_counter = _heap_end + 8);
 }

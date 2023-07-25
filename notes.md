@@ -38,7 +38,24 @@ to see what it's assembled to. -> According to https://itnext.io/risc-v-instruct
 Similarly, I can't tell if branch links a register or not. If not, it seems annoying to return from the branching call. Perhaps there's an easy way to jal
 conditionally? Worth investigating nested labels. -> branching does not link register. 
 
+General rules of calling conventions with larger assembly codebases: We're getting to the point where functions are long/complex enough that it's difficult
+to store in one's head all possible CFG executions and check that no register assumptions are violated. Therefore, I propose the following rules of thumb
+to help reduce checks needed. 
+ - Functions can accept parameters via a0, a1, and will always return a value by a2
+ - Therefore, a0, a1 values should not be modified inside a function except for preprocessing (ie zero-ing out non-needed bits) for the whole function
+ - All manipulations should be done inside temporary registers. 
+
+I'm going to have to re-write push/pop or calling conventions because I just realized that it won't work as currently implemented. Specifically,
+sometimes I use `push; li t0, 1, call X; pop` which will cause afaik multiple calls to `li t0, 1` and `call X`. Actually, nm that should be fine. As
+long as pop happens right after call, because call links the ra with the next instruction.
+
 ## Todo
+ - Switch root page table creation to kalloc, then in map virtual to physical retrieve root table via satp register, then create new L1 and L0 tables. Then
+ add physical address to L0 table, add L0 table to L1, and add L1 table to L2
+ - Figure out how to define constants as macros to improve code readability (ie PTE_SIZE rather than 8)
+ - Figure out why loading PTE2 entry is causing access fault (I added a print_hello call after the access so once it succeeds hello should print out)
+
+## Done Todo
 - Figure out why nested call pop is causing invalid access error
     - Push and pop should use sd/ld instead of sw/lw. Why? Unsure, I guess addresses use double-words? Need to investigate.
 - Understand how to switch to supervisor mode using mret

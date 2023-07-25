@@ -1,6 +1,10 @@
 .option norvc
 .section .data 
 
+.include "macro.S"
+.include "paging.S"
+.include "tests.S"
+
 # Welcomes
 welcome: .ascii "Welcome to PseudOS\n\0"
 supervisor_mode_welcome: .ascii "Welcome to Supervisor Mode \n\0"
@@ -10,21 +14,37 @@ user_mode_welcome: .ascii "Welcome to User Mode \n\0"
 child_hart: .ascii "I am a child hart % s \0"
 machine_mode: .ascii "Mode: % \n\0"
 
+# Bootup steps
+bootup_output_mode: .ascii "\n===== Checking msource register for current permission mode =====\n\0"
+bootup_machine_hardware_info: .ascii "\n===== Checking misa register for hardware info =====\n\0"
+bootup_launch_into_supervisor_mode: .ascii "\n===== Launching into supervisor mode =====\n\0"
+create_root_page_table: .ascii "\n===== Create root page table =====\n\0"
+jump_into_supervisor_mode: .ascii "\n===== Jump into supervisor mode =====\n\0"
+supervisor_pte_message: .ascii "\nPage table entry for supervisor mode entry is: \n\0"
+supervisor_physical_page_message: .ascii "\nPhysical address for supervisor mode entry is: \n\0"
+
+# Unit tests helper strings
+begin_unit_test_message: .ascii "\n===== Beginning unit tests =====\n\0"
+test_result_00: .ascii "\nShould print 'Welcome to PseudOS':\n\0"
+test_result_10: .ascii "\nShould be 0b00..000: \n\0"
+test_result_11: .ascii "\nShould be 0b00..01110:\n\0"
+test_result_12: .ascii "\nShould be all 1s:\n\0"
+end_unit_test_message: .ascii "\n===== End unit tests =====\n\0"
+
 # Trap error messages go here
 machine_trap_instruction_misaligned_warning: .ascii "Machine trap: instruction misaligned. Value: % \n\0"
 machine_trap_instruction_access_fault_warning: .ascii "Machine trap: instruction access fault. Value % \n\0"
-machine_trap_illegal_instruction_warning: .ascii "Machine trap: illegal instruction. Value % \n\0"
-machine_trap_instruction_page_fault_warning: .ascii "Machine trap: instruction page fault. Virtual page address: \n\0"
+machine_trap_handler_illegal_instruction_fault_warning: .ascii "Machine trap: illegal instruction. Register binary is: \n\0"
+machine_trap_instruction_page_fault_warning: .ascii "Machine trap: instruction page fault. Virtual page address % \n Register binary is: \n\0"
+machine_trap_load_access_fault_warning: .ascii "Machine trap: load access fault. Virtual page address % \n\0"
 machine_trap_warning: .ascii "Warning, machine trap. Exception code: %, mtval: & \n Consider adding a specific handler for this trap. \n\0"
 
 supervisor_trap_warning: .ascii "Warning, supervisor trap. Exception code: %, mtval: & \n\0"
 
-# Page table helpers
-page_table_entry: .ascii "\nCorresponding page table entry is: \0"
-
 # Misc
 number_char: .ascii "%\0"
 newline: .ascii "\n\0"
+debugging_message: .ascii "\nDebugging: \n\0"
 
 _scratchpad:
 	.skip 1024
@@ -37,33 +57,6 @@ _root_page_table:
 
 .section .text.init
 .global _start
-
-.macro push
-	# Push ra, t0-3, and a0-1 onto stack
-	sd ra, 0(sp)
-	sd t0, 8(sp)
-	sd t1, 16(sp)
-	sd t2, 24(sp)
-	sd t3, 32(sp)
-	sd a0, 40(sp)
-	sd a1, 48(sp)
-
-	li t0, 56
-	add sp, t0, sp
-.endm
-
-.macro pop
-	li t0, -56
-	add sp, t0, sp
-
-	ld ra, 0(sp) # Why does this need to be double and not just word?
-	ld t0, 8(sp)
-	ld t1, 16(sp)
-	ld t2, 24(sp)
-	ld t3, 32(sp)
-	ld a0, 40(sp)
-	ld a1, 48(sp)
-.endm
 
 _start: 
 	csrr t0, mhartid
@@ -86,6 +79,10 @@ _main_init:
 	pop
 
 	push
+	call _unit_tests
+	pop
+
+	push
 	call _output_mode
 	pop	
 
@@ -97,11 +94,6 @@ _main_init:
 	push
 	call _move_to_supervisor_mode
 	pop
-
-	# Call hello world
-	push
-	call _write_hello_init
-	pop
 	
 	wfi
 
@@ -110,6 +102,29 @@ _child_init:
 	csrr a1, mhartid
 	# call _write_uart
 	ret
+
+_unit_tests:
+	push
+	la a0, begin_unit_test_message
+	call _write_uart
+	pop
+
+	push
+	call _test_write_register_to_uart_literal
+	pop
+	
+	push
+	call _test_write_hello_init
+	pop
+
+	push
+	la a0, end_unit_test_message
+	call _write_uart
+	pop
+
+
+	ret
+
 
 _machine_trap:
 	push
@@ -124,8 +139,11 @@ _machine_trap:
 		li t1, 1
 		beq t0, t1, _machine_trap_handler_instruction_access_fault
 
-		li t1, 2
-		beq t0, t1, _machine_trap_handler_illegal_instruction
+		# li t1, 2
+		#beq t0, t1, _machine_trap_handler_illegal_instruction_fault
+
+		li t1, 5
+		beq t0, t1, _machine_trap_handler_load_access_fault
 
 		li t1, 12
 		beq t0, t1, _machine_trap_handler_instruction_page_fault
@@ -142,47 +160,50 @@ _machine_trap:
 		csrr a1, mtval
 		j _machine_trap_handler_write_uart
 
-	_machine_trap_handler_illegal_instruction:
-		la a0, machine_trap_illegal_instruction_warning
+	_machine_trap_handler_illegal_instruction_fault:
+		la a1, machine_trap_handler_illegal_instruction_fault_warning
+		csrr a1, mtval
+		push
+		call _write_uart
+		pop
+
+		#push
+		#csrr a0, mtval
+		#li a1, 0
+		#li a2, 63
+		#call _write_register_to_uart_literal
+		#pop
+
+		ret
+
+	_machine_trap_handler_load_access_fault:
+		la a0, machine_trap_load_access_fault_warning	
 		csrr a1, mtval
 		j _machine_trap_handler_write_uart
 
 	_machine_trap_handler_instruction_page_fault:
-		# Write error message
 		la a0, machine_trap_instruction_page_fault_warning
+		csrr a1, mtval
 		push
-		call _machine_trap_handler_write_uart
-		pop
-		
-		# Write virtual address
-		push
-		csrr a0, mtval
-		li a1, 0
-		li a2, 63
-		call _write_register_to_uart_literal
-		pop
-		
-		push
-		la a0, page_table_entry
 		call _write_uart
-
+		pop 
+		
+		push
 		csrr a0, mtval
-
-		call _calculate_page_table_entry_address_of_virtual_address
-		add a0, a3, zero
-		lw a0, (a0)
 		li a1, 0
 		li a2, 63
 		call _write_register_to_uart_literal
 		pop
-		
-		ret
 
+		ret
 
 	_machine_trap_handler_uncoded_exception:
 		la a0, machine_trap_warning
 		csrr a1, mcause
 		csrr a2, mtval
+
+		debug_csr_reg mtval 
+
 		j _machine_trap_handler_write_uart
 
 	_machine_trap_handler_write_uart:
@@ -203,6 +224,11 @@ _supervisor_trap:
 	wfi
 
 _output_hardware_info_entry:
+	push
+	la a0, bootup_machine_hardware_info
+	call _write_uart
+	pop
+
 	csrr t0, misa
 	li t1, 1       # Bit mask
 	li t2, 0x40    # Ascii 'A'-1 offset to convert 1 to A, 2 to B etc.
@@ -244,27 +270,20 @@ _output_hardware_info_entry:
 
 
 _move_to_supervisor_mode:
+	push
+	la a0, bootup_launch_into_supervisor_mode 
+	call _write_uart	
+	pop
+
 	# la t0, _supervisor_mode_entry
 	li t0, 0x0000000000
 	csrw sepc, t0
 	csrw mepc, t0
 	
-	# Map virtual address 0s to be the physical address of supervisor_entry
-	li a0, 0x0000000000
-	la a1, _sample_page #_supervisor_mode_entry
-	# li a1, 0x0
-	li a2, 7 # rwx bits are all 1
-	push
-	call _map_virtual_to_physical_page
-	pop
-
-	#la t0, _user_mode_entry
-	#csrw uepc, t0
-
 	# Add X,W,R permissions to physical memory protection register 0 config
 	li t0, 15 # 8 + 4 + 2 + 1
 	csrw pmpcfg0, t0
-	li t0, 0x8000000000
+	li t0, 0x80000000
 	csrw pmpaddr0, t0
 
 	# Set sstatus's SPP bit to be 1
@@ -290,82 +309,42 @@ _move_to_supervisor_mode:
 	
 	csrw mstatus, t0
 
+	# Print out that we're starting to create root page table
+	push
+	la a0, create_root_page_table
+	call _write_uart
+	pop
+
 	# Set root page table address into satp
-	la t0, (_page_table_start) #(_root_page_table)
+	call _kalloc
+	mv t0, a2 # la t0, (_root_page_table)
 	li t1, 4096
 	div t0, t0, t1
+	# Sets mode in satp to be 8, which is Sv39 (39-bit virtual addressing)
 	li t1, 8
 	slli t1, t1, 60
+
 	add t0, t0, t1
 	csrw satp, t0
 
+	# Map virtual address 0s to be the physical address of supervisor_entry
+	li a0, 0x0000000000
+	la a1, _supervisor_mode_entry
+	# li a2, 0b000 # rwx bits are all 0
+	push
+	#call _map_virtual_to_physical_page
+	call _map_virtual_address_to_physical_address
+	pop
+
 	# Jump to MPP mode (which should be supervisor mode)
+	push
+	la a0, jump_into_supervisor_mode
+	call _write_uart
+	pop
+
 	mret
 
 	ret
-
-
-# a0 = virtual address
-_calculate_page_table_entry_address_of_virtual_address:
-	# Clear page offset from virtual page
-	li t0, 0x0FFFFFFF
-	and a0, a0, t0
-
-	# get physical address of page table
-	la t0, _page_table_start # _root_page_table # Could calculate with SATP register, but this is easier
-
-	# Get physical address offset of PTE for virtual page
-	add t1, a0, zero
-	srai t1, t1, 30 # VPN[2] starts at 30
-	li t2, 8 # load PTE size
-	mul t1, t1, t2
-
-	add a3, t0, t1 # Get physical address of PTE
-	
-	ret
-
-
-# a0 = virtual page
-# a1 = physical page
-# a2 = rwx bits
-_map_virtual_to_physical_page:
-	# Remove any bits after the virtual address
-	li t0, 0x0FFFFFFF
-	and a0, a0, t0
-
-	# Remove physical and virtaul address offset
-	li t0, 0xFFF
-	not t0, t0
-	and a1, a1, t0
-
-	# get physical address of page table
-	la t0, _page_table_start#_root_page_table # Could calculate with SATP register, but this is easier
-
-	# Get physical address offset of PTE for virtual page
-	add t1, a0, zero
-	srai t1, t1, 30 # VPN[2] starts at 30
-	li t2, 8 # load PTE sie
-	mul t1, t1, t2
-
-	add t0, t0, t1 # Get physical address of PTE
-
-	# create new PTE
-	srai a1, a1, 2 # shift physical address info into the correct bit slots
-	li t1, 0xFFFFFFC0
-	and a1, a1, t1
-
-	slli a2, a2, 1
-	or a1, a1, a2 # Add rwx bits
-	
-	# Set 'valid' bit to 1
-	li t1, 1
-	or a1, a1, t1
-
-	# Store newly created PTE into page table
-	sd a1, (t0)
-
-	ret
-
 
 # Function to output 64 register value bit-by-bit to UART
 # a0 = register value to write out
@@ -381,9 +360,12 @@ _write_register_to_uart_literal:
 	and t2, t0, t1 # Grab lowest bit only
 	
 	push
-	la a0, number_char
-	add a1, t2, zero
-	call _write_uart
+	# la a0, number_char
+	# mv a1, t2
+	mv a0, t2
+	li t0, 0x30
+	add a0, a0, t0
+	call _write_byte_to_uart
 	pop
 
 	# Increment bit counter
@@ -394,9 +376,16 @@ _write_register_to_uart_literal:
 	_write_register_to_uart_literal_end:
 		ret
 
+_debug_call:
+	push
+	call _write_hello_init
+	pop
 
-#_supervisor_mode_entry:
-.global _sample_page
+	ret
+
+.align 12
+_supervisor_mode_entry:
+	ecall
 	la a0, supervisor_mode_welcome
 	call _write_uart
 	wfi
@@ -409,6 +398,11 @@ _user_mode_entry:
 
 
 _output_mode:
+	push
+	la a0, bootup_output_mode
+	call _write_uart
+	pop
+
 	csrr t0, mstatus
 	srai t0, t0, 14
 	li t1, 3
@@ -428,21 +422,20 @@ _write_hartid:
 
 # Assumes 0-terminated string address is loaded into a0
 _write_uart:
-	li t0, 0x10000000 # Store UART addr
 	lb t1, (a0) # Load byte from string
 	beqz t1, _write_uart_ret # If 0-termination char is reached, finish
 
 	# if char is %, output value of a1 to uart instead of %
 	li t4, 0x25
-	sub t3, t1, t4
-	beqz t3, _write_uart_param
+	beq t1, t4, _write_uart_param
 
 	# if char is &, output value of a2 to uart instead of &
 	li t4, 0x26
-	sub t3, t1, t4
-	beqz t3, _write_uart_second_param
+	beq t1, t4, _write_uart_second_param
 
+	li t0, 0x10000000
 	sb t1, (t0) # Write byte to UART
+
 	j _write_uart_increment
 
 	_write_uart_param:
@@ -469,6 +462,14 @@ _write_uart:
 	_write_uart_ret:
 		ret
 
+# Writes a byte to UART
+# a0 = byte to write
+_write_byte_to_uart:
+	li t0, 0x10000000 # UART addr
+	sb a0, (t0)
+	ret
+
+
 _write_hello_init:
 	la a1, welcome
 	li t2, 0x10000000
@@ -489,5 +490,3 @@ _write_hello_init:
 
 _wait:
 	wfi
-
-.include "debug.S"
