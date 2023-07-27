@@ -172,6 +172,10 @@ _map_virtual_address_to_physical_address:
 		call _convert_physical_address_to_pte
 		pop
 
+		# Set A bit to 1
+		li t2, 0x40
+		or a2, a2, t2
+
 		# insert PTE into table
 		sd a2, (t3)
 

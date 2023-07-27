@@ -1,12 +1,17 @@
 .option norvc
-.section .data 
 
 .include "macro.S"
 .include "paging.S"
 .include "tests.S"
+.include "uart.S"
+.include "pci.S"
+
+.align 12
+.section .data 
 
 # Welcomes
 welcome: .ascii "Welcome to PseudOS\n\0"
+.align 12
 supervisor_mode_welcome: .ascii "Welcome to Supervisor Mode \n\0"
 user_mode_welcome: .ascii "Welcome to User Mode \n\0"
 
@@ -32,14 +37,18 @@ test_result_12: .ascii "\nShould be all 1s:\n\0"
 end_unit_test_message: .ascii "\n===== End unit tests =====\n\0"
 
 # Trap error messages go here
-machine_trap_instruction_misaligned_warning: .ascii "Machine trap: instruction misaligned. Value: % \n\0"
-machine_trap_instruction_access_fault_warning: .ascii "Machine trap: instruction access fault. Value % \n\0"
+# Note: Per _write_uart implementation, $ will print as register literal, % will print ascii value offset from 'A', and & will print as ascii not offset
+machine_trap_instruction_misaligned_warning: .ascii "Machine trap: instruction misaligned. Value: $ \n\0"
+machine_trap_instruction_access_fault_warning: .ascii "Machine trap: instruction access fault. Value $ \n\0"
 machine_trap_handler_illegal_instruction_fault_warning: .ascii "Machine trap: illegal instruction. Register binary is: \n\0"
 machine_trap_instruction_page_fault_warning: .ascii "Machine trap: instruction page fault. Virtual page address % \n Register binary is: \n\0"
-machine_trap_load_access_fault_warning: .ascii "Machine trap: load access fault. Virtual page address % \n\0"
+machine_trap_load_access_fault_warning: .ascii "Machine trap: load access fault. Virtual page address $ \n\0"
 machine_trap_warning: .ascii "Warning, machine trap. Exception code: %, mtval: & \n Consider adding a specific handler for this trap. \n\0"
 
 supervisor_trap_warning: .ascii "Warning, supervisor trap. Exception code: %, mtval: & \n\0"
+
+# PCI
+setup_pci_device_unknown_device_warning: .ascii "Detected PCI device with unknown [deviceId][vendorId]: $, so skipping setting it up \n\0"
 
 # Misc
 number_char: .ascii "%\0"
@@ -49,6 +58,7 @@ debugging_message: .ascii "\nDebugging: \n\0"
 _scratchpad:
 	.skip 1024
 
+.align 12
 _stack:
 	.skip 4096, 0
 
@@ -276,7 +286,7 @@ _move_to_supervisor_mode:
 	pop
 
 	# la t0, _supervisor_mode_entry
-	li t0, 0x0000000000
+	la t0, _supervisor_mode_entry #0x0000000000
 	csrw sepc, t0
 	csrw mepc, t0
 	
@@ -328,18 +338,52 @@ _move_to_supervisor_mode:
 	csrw satp, t0
 
 	# Map virtual address 0s to be the physical address of supervisor_entry
-	li a0, 0x0000000000
-	la a1, _supervisor_mode_entry
-	# li a2, 0b000 # rwx bits are all 0
 	push
-	#call _map_virtual_to_physical_page
+	la a0, _supervisor_mode_entry # 0x0000000000
+	la a1, _supervisor_mode_entry
 	call _map_virtual_address_to_physical_address
 	pop
+
+	push
+	la a0, _data_start
+	la a1, _data_start
+	call _map_virtual_address_to_physical_address
+	pop
+
+	push
+	la a0, supervisor_mode_welcome
+	la a1, supervisor_mode_welcome
+	call _map_virtual_address_to_physical_address
+	pop
+
+
+	push
+	li a0, 0x10000000
+	li a1, 0x10000000
+	call _map_virtual_address_to_physical_address
+	pop
+
+	push
+	la a0, _write_uart
+	la a1, _write_uart
+	call _map_virtual_address_to_physical_address
+	pop
+	
+	push
+	la a0, _stack
+	la a1, _stack
+	call _map_virtual_address_to_physical_address
+	pop
+
 
 	# Jump to MPP mode (which should be supervisor mode)
 	push
 	la a0, jump_into_supervisor_mode
 	call _write_uart
+	pop
+
+	push
+	call _list_pci_ecam
 	pop
 
 	mret
@@ -385,9 +429,13 @@ _debug_call:
 
 .align 12
 _supervisor_mode_entry:
-	ecall
 	la a0, supervisor_mode_welcome
+	lb t0, (a0)
+	#li t0, 0x41
+	li t1, 0x10000000
+	# sb t0, (t1)
 	call _write_uart
+	# ecall
 	wfi
 
 
@@ -419,74 +467,6 @@ _write_hartid:
 	csrr a1, mhartid
 	j _write_uart
 
-
-# Assumes 0-terminated string address is loaded into a0
-_write_uart:
-	lb t1, (a0) # Load byte from string
-	beqz t1, _write_uart_ret # If 0-termination char is reached, finish
-
-	# if char is %, output value of a1 to uart instead of %
-	li t4, 0x25
-	beq t1, t4, _write_uart_param
-
-	# if char is &, output value of a2 to uart instead of &
-	li t4, 0x26
-	beq t1, t4, _write_uart_second_param
-
-	li t0, 0x10000000
-	sb t1, (t0) # Write byte to UART
-
-	j _write_uart_increment
-
-	_write_uart_param:
-		# Add 0x30 to param to turn into ascii (assuming number)
-		li t1, 0x30
-		add a1, t1, a1
-		sb a1, (t0)
-
-		j _write_uart_increment
-
-	_write_uart_second_param:
-		li t1, 0
-		add a2, t1, a2
-		sb a2, (t0)
-
-		j _write_uart_increment
-
-	_write_uart_increment:
-		li t2, 1 # Increment string addr to point to next byte
-		add a0, t2, a0
-		j _write_uart # Continue looping
-
-
-	_write_uart_ret:
-		ret
-
-# Writes a byte to UART
-# a0 = byte to write
-_write_byte_to_uart:
-	li t0, 0x10000000 # UART addr
-	sb a0, (t0)
-	ret
-
-
-_write_hello_init:
-	la a1, welcome
-	li t2, 0x10000000
-	j _write_hello
-
-	_write_hello:
-		# Load first byte into register
-		lb t1, (a1)
-		beqz t1, _write_hello_end
-		# Write byte to UART memory address
-		sb t1, (t2)
-		li t3, 1
-		add a1, t3, a1
-		j _write_hello
-		# If the byte is not 0, repeat
-	_write_hello_end:
-		ret
 
 _wait:
 	wfi
