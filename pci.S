@@ -74,18 +74,20 @@ _list_pci_ecam:
 		li t2, 4096
 		mul t2, t1, t2
 		add t2, t0, t2
-		ld t2, (t2)
+		ld t4, (t2)
 
 		# If device is present, set it up
 		#push
-		mv a0, t2
-		mv a1, t2
-		li t2, 0xFFFF
-		and a1, a1, t2
-		bne t2, a1, _list_pci_ecam_iter_setup_device
+		mv a0, t4
+		mv a1, t4
+		li t4, 0xFFFF
+		and a1, a1, t4
+		bne t4, a1, _list_pci_ecam_iter_setup_device
 		j _list_pci_ecam_iter_increment
 		
 		_list_pci_ecam_iter_setup_device:
+			mv a1, a0
+			mv a0, t2
 			push
 			call _setup_pci_device
 			pop
@@ -99,19 +101,19 @@ _list_pci_ecam:
 
 			ret
 
-# a0 = contains [deviceId][vendorId]
+# a0 = address of PCI entry
+# a1 = contains [deviceId][vendorId]
 _setup_pci_device:	
 	# QEMU PCI bridge
 	li t1, 0x81B36
-	beq a0, t1, _setup_qemu_pci_bridge
+	# beq a1, t1, _setup_qemu_pci_bridge
 
 	# QEMU VGA
 	li t1, 0x11111234
-	beq a0, t1, _setup_qemu_vga
+	beq a1, t1, _setup_qemu_vga
 
 	# Otherwise it's an unknown device, so we print out a warning and skip it
 	push
-	mv a1, a0
 	la a0, setup_pci_device_unknown_device_warning
 	call _write_uart
 	pop
@@ -122,6 +124,3 @@ _setup_pci_device:
 _setup_qemu_pci_bridge:
 	wfi
 
-
-_setup_qemu_vga:
-	wfi

@@ -5,6 +5,7 @@
 .include "tests.S"
 .include "uart.S"
 .include "pci.S"
+.include "vga.S"
 
 .align 12
 .section .data 
