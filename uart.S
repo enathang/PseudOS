@@ -64,6 +64,7 @@ _write_byte_to_uart:
 	ret
 
 
+.globl _write_hello_init
 _write_hello_init:
 	la a1, welcome
 	li t2, 0x10000000

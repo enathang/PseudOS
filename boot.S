@@ -286,6 +286,9 @@ _move_to_supervisor_mode:
 	call _write_uart	
 	pop
 
+	.extern c_main
+	jal c_main
+
 	# la t0, _supervisor_mode_entry
 	la t0, _supervisor_mode_entry #0x0000000000
 	csrw sepc, t0

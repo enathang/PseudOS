@@ -49,11 +49,27 @@ I'm going to have to re-write push/pop or calling conventions because I just rea
 sometimes I use `push; li t0, 1, call X; pop` which will cause afaik multiple calls to `li t0, 1` and `call X`. Actually, nm that should be fine. As
 long as pop happens right after call, because call links the ra with the next instruction.
 
+
+Linking assembly and C code together:
+Compile C -> `clang program.c -o program`  jk because we have to compile it for riscv it's `riscv64-unknown-elf-gcc`
+
+In assembly, we `.extern c_main` and then jump to it
+`riscv64-unknown-elf-gcc -c boot.S -o boot.o                               
+riscv64-unknown-elf-gcc -c main.c -o main.o                                                           
+riscv64-unknown-elf-ld boot.o main.o -T kernel.lds -o kernel.elf                                                              
+qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 128M  -serial mon:stdio -bios none -kernel kernel.elf -device VGA`
+
+To view symbol table of object:
+`riscv64-unknown-elf-objdump boot.o --syms`
+
+
 ## Todo
- - Switch root page table creation to kalloc, then in map virtual to physical retrieve root table via satp register, then create new L1 and L0 tables. Then
+- Inspect output ELF file to learn the different data segment parts
+- Get mandelbrot set or doom or keyboard working on kernel
+
+- Switch root page table creation to kalloc, then in map virtual to physical retrieve root table via satp register, then create new L1 and L0 tables. Then
  add physical address to L0 table, add L0 table to L1, and add L1 table to L2
  - Figure out how to define constants as macros to improve code readability (ie PTE_SIZE rather than 8)
- - Figure out why loading PTE2 entry is causing access fault (I added a print_hello call after the access so once it succeeds hello should print out)
 
 ## Done Todo
 - Figure out why nested call pop is causing invalid access error
