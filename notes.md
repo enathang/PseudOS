@@ -62,6 +62,8 @@ qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 128M  -serial mon:stdio -b
 To view symbol table of object:
 `riscv64-unknown-elf-objdump boot.o --syms`
 
+To compile main.c with symbols, remember to use `-mcmodel=medany`
+
 
 ## Todo
 - Inspect output ELF file to learn the different data segment parts
@@ -75,3 +77,7 @@ To view symbol table of object:
 - Figure out why nested call pop is causing invalid access error
     - Push and pop should use sd/ld instead of sw/lw. Why? Unsure, I guess addresses use double-words? Need to investigate.
 - Understand how to switch to supervisor mode using mret
+
+## References
+- https://michaeljclark.github.io/asm.html
+- https://www.sifive.com/blog/all-aboard-part-4-risc-v-code-models

@@ -1,5 +1,6 @@
 
 # Assumes 0-terminated string address is loaded into a0
+.globl _write_uart
 .align 12
 _write_uart:
 	lb t1, (a0) # Load byte from string
