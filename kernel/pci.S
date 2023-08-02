@@ -41,7 +41,7 @@ _list_pci_ecam:
 _setup_pci_device:	
 	# QEMU PCI bridge
 	li t1, 0x81B36
-	# beq a1, t1, _setup_qemu_pci_bridge
+	beq a1, t1, _setup_qemu_pci_bridge
 
 	# QEMU VGA
 	li t1, 0x11111234
@@ -57,5 +57,5 @@ _setup_pci_device:
 
 
 _setup_qemu_pci_bridge:
-	wfi
+	ret
 

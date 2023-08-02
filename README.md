@@ -6,9 +6,11 @@ PseudOS is a toy operating system based on the following resources:
 
 
 ## Prerequisites
-PseudOS runs on QEMU and needs a riscv64 toolchain to compile
+PseudOS runs on QEMU and needs a riscv64 toolchain to compile. See https://www.qemu.org/docs/master/system/riscv/virt.html for more details
 
 ## Compiling the bootloader
+Running `make` should take care of everything
+
 `riscv64-unknown-elf-as boot.S -o boot.o`
 `riscv64-unknown-elf-ld boot.o -T kernel.lds -o kernel.elf`
 Run with `qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 128M -nographic -serial mon:stdio -bios none -kernel kernel.elf`

@@ -57,8 +57,40 @@ _write_uart:
 	_write_uart_ret:
 		ret
 
+# Function to output 64 register value bit-by-bit to UART
+# a0 = register value to write out
+# a1 = bit to start reading from
+# a2 = bit to read through
+.globl _write_register_to_uart_literal
+_write_register_to_uart_literal:
+	bgt a1, a2, _write_register_to_uart_literal_end
+
+	# Write bit to uart
+	sub t1, a2, a1
+	sra t0, a0, t1
+	li t1, 1
+	and t2, t0, t1 # Grab lowest bit only
+	
+	push
+	# la a0, number_char
+	# mv a1, t2
+	mv a0, t2
+	li t0, 0x30
+	add a0, a0, t0
+	call _write_byte_to_uart
+	pop
+
+	# Increment bit counter
+	li t1, 1
+	add a1, a1, t1
+	j _write_register_to_uart_literal
+
+	_write_register_to_uart_literal_end:
+		ret
+
 # Writes a byte to UART
 # a0 = byte to write
+.globl _write_byte_to_uart
 _write_byte_to_uart:
 	li t0, 0x10000000 # UART addr
 	sb a0, (t0)

@@ -1,7 +1,8 @@
 
 # kalloc
 # Inputs: none
-# return: a2, the physical address of new 4kB page
+# return: a0, the physical address of new 4kB page
+.globl _kalloc
 _kalloc:
 	# Increment heap counter
 	la t1, _heap_counter
@@ -17,9 +18,17 @@ _kalloc:
 	mul t0, t0, t2
 
 	# return address
-	sub a2, t1, t0
+	sub a0, t1, t0
 	ret
 
+# A wrapper around kalloc to conform to my ABI, so I can switch kalloc to standard ABI
+_kalloc_wrapper:
+	push
+	call _kalloc
+	mv a2, a0
+	pop
+
+	ret
 
 # a0 = physical address
 # a1 = rwx bits
@@ -68,6 +77,7 @@ _get_physical_address_from_pte:
 
 # a0 = virtual address
 # a1 = physical address
+.globl _map_virtual_address_to_physical_address
 _map_virtual_address_to_physical_address:
 	# Remove any unnecessary bits from virtual address
 	li t0, 0x07FFFFFF000
@@ -120,7 +130,7 @@ _map_virtual_address_to_physical_address:
 		_map_virtual_address_to_physical_address_kalloc_new_page:
 			# kalloc a page
 			push
-			call _kalloc
+			call _kalloc_wrapper
 			pop
 
 			# create PTE for that page

@@ -1,3 +1,26 @@
+_unit_tests:
+	push
+	la a0, begin_unit_test_message
+	call _write_uart
+	pop
+
+	push
+	call _test_write_register_to_uart_literal
+	pop
+	
+	push
+	call _test_write_hello_init
+	pop
+
+	push
+	la a0, end_unit_test_message
+	call _write_uart
+	pop
+
+	ret
+
+
+
 _test_write_hello_init:
 	la a0, test_result_00
 	push

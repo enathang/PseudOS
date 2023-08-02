@@ -27,6 +27,13 @@
 	ld a1, 48(sp)
 .endm
 
+.macro print str
+	push
+	la a0, \str
+	call _write_uart
+	pop
+.endm
+
 .macro debug_reg reg_name
 	push
 	la a0, debugging_message

@@ -16,6 +16,9 @@ SECTIONS {
 	.text : {
 		PROVIDE(_text_start = .);
 		*(.text.init) *(.text .text.*)
+		PROVIDE(_elf_start = .);
+		*(.elf)
+		PROVIDE(_elf_end = .);
 		PROVIDE(_text_end = .);
 	} >ram AT>ram :text
 
@@ -40,10 +43,14 @@ SECTIONS {
 		PROVIDE(_bss_end = .);
 	} >ram AT>ram :bss
 
+	.elf : {
+	}
+
 	PROVIDE(_memory_start = ORIGIN(ram));
 	PROVIDE(_memory_end = _memory_start + LENGTH(ram));
 	PROVIDE(_heap_end = _memory_end - 4096);
 	PROVIDE(_heap_counter = _heap_end + 8);
+
 
 	PROVIDE(_vga_framebuffer = 0x50000000);
 	PROVIDE(_vga_mmio = 0x40000000);

@@ -64,20 +64,44 @@ To view symbol table of object:
 
 To compile main.c with symbols, remember to use `-mcmodel=medany`
 
+Notes on ABI: Per the useful document https://inst.eecs.berkeley.edu/~cs61c/resources/RISCV_Calling_Convention.pdf RISCV has calling conventions that differ
+with what I've used so far in this code. As pointed out in the document, this is fine until it's not, and it usually becomes an issue as soon as you have higher-level code that you compile to assembly that mixes with assembly code. I should be alright as long as I make sure to convert between my calling conventions and the RISCV calling conventions at the boundary of pure-assembly and compiled assembly (famous last words). 
+
+Well, I refactored the kernel into a few new files and am getting all sorts of access errors now :/ best guess atm is the imports are importing the data to the wrong part section(segment?) of the boot.S file. I'll compare against the last git commit to try and triangulate changes causing these issues.
 
 ## Todo
+- Figure out why file refactoring is causing jal (relocation truncated to fit) issues
+- Function sorta works in machine mode but page faults in supervisor mode
+- See output of function, change function until memory is being mapped correctly
+- (before or after) move to user-mode
+
+- Re-read RISCV ABI and calling conventions, and align code with that
+
+- Get c_main working in user mode, with traps to suervisor mode for system calls such as print
 - Inspect output ELF file to learn the different data segment parts
 - Get mandelbrot set or doom or keyboard working on kernel
 
-- Switch root page table creation to kalloc, then in map virtual to physical retrieve root table via satp register, then create new L1 and L0 tables. Then
- add physical address to L0 table, add L0 table to L1, and add L1 table to L2
  - Figure out how to define constants as macros to improve code readability (ie PTE_SIZE rather than 8)
 
 ## Done Todo
 - Figure out why nested call pop is causing invalid access error
     - Push and pop should use sd/ld instead of sw/lw. Why? Unsure, I guess addresses use double-words? Need to investigate.
 - Understand how to switch to supervisor mode using mret
+    - I think there was just some setting that wasn't being set yet, such as page physical access permissions or matp.
+- Switch root page table creation to kalloc, then in map virtual to physical retrieve root table via satp register, then create new L1 and L0 tables. Then
+ add physical address to L0 table, add L0 table to L1, and add L1 table to L2
+    - Done
+- Check arguments can be passed from assembly to C, from C to assembly, and that values can be returned from assembly to C
+    - Yep! Works easier than expected, although weird side-effects occur because I didn't really follow RiscV ABI
 
 ## References
 - https://michaeljclark.github.io/asm.html
 - https://www.sifive.com/blog/all-aboard-part-4-risc-v-code-models
+- https://luplab.gitlab.io/rvcodecjs/
+- https://www2.eecs.berkeley.edu/Courses/CS61C/ (specifically https://inst.eecs.berkeley.edu/~cs61c/sp21/)
+- https://web.eecs.utk.edu/~smarz1/courses/ece356/notes/assembly/
+- https://itnext.io/risc-v-instruction-set-cheatsheet-70961b4bbe8
+- https://github.com/qemu/qemu/blob/master/hw/riscv/virt.c
+- https://wiki.osdev.org/Pci
+- https://gist.github.com/iamgreaser/15a0a81cd117d4efd1c47ce598c13c91
+- https://www.cs.cornell.edu/courses/cs3410/2019sp/schedule/slides/11-linkload-notes-bw.pdf
