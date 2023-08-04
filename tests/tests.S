@@ -17,6 +17,10 @@ _unit_tests:
 	call _write_uart
 	pop
 
+	push
+	call _test_stack
+	pop
+
 	ret
 
 
@@ -27,9 +31,7 @@ _test_write_hello_init:
 	call _write_uart
 	pop
 
-	push
-	call _write_hello_init
-	pop
+	print welcome_message
 
 	ret
 
@@ -71,6 +73,23 @@ _test_write_register_to_uart_literal:
 	li a1, 0
 	li a2, 63
 	push
+	call _write_register_to_uart_literal
+	pop
+
+	ret
+
+
+_test_stack:
+	.extern fibonacci
+	push
+	li a0, 0
+	li a1, 1
+	li a2, 24
+	call fibonacci
+	mv a2, a0
+	pop
+	push
+	mv a0, a2
 	call _write_register_to_uart_literal
 	pop
 

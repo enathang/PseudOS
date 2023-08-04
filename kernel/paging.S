@@ -13,11 +13,11 @@ _kalloc:
 	sb t0, (t1)
 
 	# get address of new page based on heap counter
-	la t1, _heap_end
 	li t2, 4096
 	mul t0, t0, t2
 
 	# return address
+	la t1, _heap_end
 	sub a0, t1, t0
 	ret
 

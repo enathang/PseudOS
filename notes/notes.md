@@ -70,7 +70,7 @@ with what I've used so far in this code. As pointed out in the document, this is
 Well, I refactored the kernel into a few new files and am getting all sorts of access errors now :/ best guess atm is the imports are importing the data to the wrong part section(segment?) of the boot.S file. I'll compare against the last git commit to try and triangulate changes causing these issues.
 
 ## Todo
-- Figure out why file refactoring is causing jal (relocation truncated to fit) issues
+- Write dump heap and dump page table functions to trigger on page fault
 - Function sorta works in machine mode but page faults in supervisor mode
 - See output of function, change function until memory is being mapped correctly
 - (before or after) move to user-mode
@@ -84,6 +84,13 @@ Well, I refactored the kernel into a few new files and am getting all sorts of a
  - Figure out how to define constants as macros to improve code readability (ie PTE_SIZE rather than 8)
 
 ## Done Todo
+- Get fibonacci unit test working
+    - Now works; issue was my OS moved stack in opposite direction to gcc. So when I put stuff on the stack, the invoked C code, the stack would expand
+    in the other direction and overwrite local variables. Thought of it during my nap (idling on my previously written comment that my stack direction
+    was not the usual direction) and then confirmed by examining the assembly of main.C.
+- Write notes on memory layout and which directions stack/heap are growing right now for clarity/reference
+- Figure out why file refactoring is causing jal (relocation truncated to fit) issues
+    - Had to do with import statement being in .data section and not .text section, once I moved the statement there were no issues
 - Figure out why nested call pop is causing invalid access error
     - Push and pop should use sd/ld instead of sw/lw. Why? Unsure, I guess addresses use double-words? Need to investigate.
 - Understand how to switch to supervisor mode using mret

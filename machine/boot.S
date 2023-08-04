@@ -2,16 +2,20 @@
 
 .include "kernel/constants.S"
 .include "kernel/macro.S"
-.include "kernel/paging.S"
-#.include "kernel/tests.S"
 .include "kernel/uart.S"
 .include "kernel/pci.S"
 .include "kernel/vga.S"
-.include "kernel/kernel.S"
 .include "user/user.S"
 
 .align 12
 .section .data 
+
+.align 12
+_stack_buffer:
+	.skip 4096, 0
+
+# Note: currently the stack grows towards lower-addresses. Therefore, it actually grows
+# into _stack_buffer and not _stack.
 
 .align 12
 _stack:
@@ -40,12 +44,10 @@ _main_init:
 	csrw stvec, t0
 
 	# Call hello world
-	push
-	call _write_hello_init
-	pop
+	print welcome_message
 
 	push
-	#call _unit_tests
+	call _unit_tests
 	pop
 
 	push
@@ -69,91 +71,10 @@ _child_init:
 	# call _write_uart
 	ret
 
-
-_machine_trap:
-	push
-	call _machine_trap_handler
-	pop
-
-	wfi
-	_machine_trap_handler:
-		csrr t0, mcause
-		beq t0, zero, _machine_trap_handler_instruction_misaligned
-
-		li t1, 1
-		beq t0, t1, _machine_trap_handler_instruction_access_fault
-
-		li t1, 2
-		beq t0, t1, _machine_trap_handler_illegal_instruction_fault
-
-		li t1, 5
-		beq t0, t1, _machine_trap_handler_load_access_fault
-
-		li t1, 12
-		beq t0, t1, _machine_trap_handler_instruction_page_fault
-
-		li t1, 15
-		beq t0, t1, _machine_trap_handler_store_amo_page_fault
-
-		j _machine_trap_handler_uncoded_exception
-
-	_machine_trap_handler_instruction_misaligned:
-		la a0, machine_trap_instruction_misaligned_warning
-		csrr a1, mtval
-		j _machine_trap_handler_write_uart
-
-	_machine_trap_handler_instruction_access_fault:
-		la a0, machine_trap_instruction_access_fault_warning
-		csrr a1, mtval
-		j _machine_trap_handler_write_uart
-
-	_machine_trap_handler_illegal_instruction_fault:
-		la a0, machine_trap_handler_illegal_instruction_fault_warning
-		csrr a1, mtval
-		push
-		call _write_uart
-		pop
-
-		ret
-
-	_machine_trap_handler_load_access_fault:
-		la a0, machine_trap_load_access_fault_warning	
-		csrr a1, mtval
-		j _machine_trap_handler_write_uart
-
-	_machine_trap_handler_instruction_page_fault:
-		la a0, machine_trap_instruction_page_fault_warning
-		csrr a1, mtval
-		push
-		call _write_uart
-		pop 
-		
-		ret
-
-	_machine_trap_handler_store_amo_page_fault:
-		la a0, machine_trap_handler_store_amo_page_fault_warning
-		csrr a1, mtval
-		push
-		call _write_uart
-		pop
-
-		ret
-
-	_machine_trap_handler_uncoded_exception:
-		la a0, machine_trap_warning
-		csrr a1, mcause
-		csrr a2, mtval
-
-		debug_csr_reg mtval 
-
-		j _machine_trap_handler_write_uart
-
-	_machine_trap_handler_write_uart:
-		push
-		call _write_uart
-		pop
-
-		ret
+.include "machine/machine_trap_handler.S"
+.include "tests/tests.S"
+.include "kernel/kernel.S"
+.include "kernel/paging.S"
 
 
 _supervisor_trap:
@@ -222,7 +143,7 @@ _move_to_supervisor_mode:
 	#debug_reg a0
 
 	# la t0, _supervisor_mode_entry
-	la t0, _supervisor_mode_entry #0x0000000000
+	la t0, _supervisor_mode_entry 
 	csrw sepc, t0
 	csrw mepc, t0
 	
@@ -232,7 +153,7 @@ _move_to_supervisor_mode:
 	li t0, 0x8000000000000
 	csrw pmpaddr0, t0
 	
-	# Set sstatus's SPP bit to be 1
+	# Set mstatus's SPP bit to be 1
 	csrr t0, mstatus
 	li t1, 1
 	slli t1, t1, 8
@@ -285,10 +206,12 @@ _setup_page_table:
 	print create_root_page_table
 
 	# Set root page table address into satp
+	/*
 	push
 	call _kalloc_wrapper
 	pop
-	mv t0, a2
+	mv t0, a2*/
+	la t0, _root_page_table
 	li t1, 4096
 	div t0, t0, t1
 	# Sets mode in satp to be 8, which is Sv39 (39-bit virtual addressing)
@@ -307,49 +230,88 @@ _map_supervisor_virtual_addresses:
 	push
 	la a0, _supervisor_mode_entry
 	la a1, _supervisor_mode_entry
+	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
 	push
 	la a0, _data_start
 	la a1, _data_start
+	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
 	push
 	la a0, supervisor_mode_welcome
 	la a1, supervisor_mode_welcome
+	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
-
+	push
+	csrr a0, satp
+	li t0, 0x0FFFFFFFFFFF
+	and a0, a0, t0
+	li t0, 4096
+	mul a0, a0, t0
+	mv a1, a0
+	la a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop	
+	
 	push
 	li a0, 0x10000000 # This is the UART memory-mapped location in QEMU
 	li a1, 0x10000000
+	la a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
 	push
 	la a0, _write_uart
 	la a1, _write_uart
+	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
 	push
 	la a0, _elf_start
 	la a1, _elf_start
+	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 	
 	push
 	la a0, _stack
 	la a1, _stack
+	li a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+	
+	push
+	la a0, _stack_buffer
+	la a1, _stack_buffer
+	li a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+
+	push
+	la a0, _heap_counter
+	la a1, _heap_counter
+	la a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+	
+	push
+	la a0, _heap_end
+	la a1, _heap_end
+	la a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 
 	push
 	la a0, _write_register_to_uart_literal
 	la a1, _write_register_to_uart_literal
+	la a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
 

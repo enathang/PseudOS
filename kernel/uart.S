@@ -88,6 +88,27 @@ _write_register_to_uart_literal:
 	_write_register_to_uart_literal_end:
 		ret
 
+
+.globl _write_uart_wrapper
+_write_uart_wrapper:
+	mv t0, a2
+	push
+	call _write_uart
+	pop
+	mv a2, t0
+
+	ret
+
+.globl _write_register_to_uart_literal_wrapper
+_write_register_to_uart_literal_wrapper:
+	mv t0, a2
+	push
+	call _write_register_to_uart_literal
+	pop
+	mv a2, t0
+
+	ret
+
 # Writes a byte to UART
 # a0 = byte to write
 .globl _write_byte_to_uart
@@ -95,24 +116,4 @@ _write_byte_to_uart:
 	li t0, 0x10000000 # UART addr
 	sb a0, (t0)
 	ret
-
-
-.globl _write_hello_init
-_write_hello_init:
-	la a1, welcome
-	li t2, 0x10000000
-	j _write_hello
-
-	_write_hello:
-		# Load first byte into register
-		lb t1, (a1)
-		beqz t1, _write_hello_end
-		# Write byte to UART memory address
-		sb t1, (t2)
-		li t3, 1
-		add a1, t3, a1
-		j _write_hello
-		# If the byte is not 0, repeat
-	_write_hello_end:
-		ret
 

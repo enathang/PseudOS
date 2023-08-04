@@ -1,6 +1,5 @@
-// #DEFINE ELF_MAGIC_NUMBER 0x464C457F // 0x7FELF in little endian
-
 #import <stdint.h>
+uint32_t ELF_MAGIC_NUMBER = 0x464C457F; // 0x7FELF in little endian
 
 struct elf_header {
 	uint32_t magic_number;
@@ -9,9 +8,11 @@ struct elf_header {
 	uint8_t ei_version;
 	uint8_t ei_osabi;
 	uint8_t ei_osabiversion;
-	uint32_t ei_pad; // TODO: should be 7?
-	uint16_t ei_pad2;
-	uint8_t ei_pad3;
+	// pad is 7bytes long, so we split into 4,2,1 bytes
+	char padding[7]; // WHYYYY???
+	//uint32_t ei_pad;
+	//uint16_t ei_pad2;
+	//uint8_t ei_pad3;
 
 	uint16_t e_type;
 	uint16_t e_machine;
@@ -40,49 +41,67 @@ struct program_header {
 };
 
 
-extern void _write_uart(char*);
+//extern void _write_uart(char*);
+//extern void _write_register_to_uart_literal(uint64_t, uint64_t, uint64_t);
+
+extern void _write_uart_wrapper(char*);
+extern void _write_register_to_uart_literal_wrapper(uint64_t, uint64_t, uint64_t);
 
 extern uint64_t _kalloc();
-extern void _map_virtual_address_to_physical_address(uint64_t, uint64_t);
+extern void _map_virtual_address_to_physical_address(uint64_t, uint64_t, uint64_t);
 
-extern void _write_register_to_uart_literal(uint64_t, uint64_t, uint64_t);
 
 uint64_t parse_elf(uint64_t* file_header) {
+	_write_uart_wrapper("Beginning parse_elf...\n\0");
 	struct elf_header eh = *(struct elf_header*)file_header;
-	//_write_uart("\nE_magic_number: \0");
-	//_write_register_to_uart_literal(eh.magic_number, 0, 63);
-	//_write_uart("\nE_phnum: \0");
-	//_write_register_to_uart_literal(eh.e_phnum, 0, 63);
+	
+	if (eh.magic_number != ELF_MAGIC_NUMBER) {
+		_write_uart_wrapper("Attempted to load ELF binary, but magic number was not correct. Skipping it.\n\0");
+	}
+
+	_write_uart_wrapper("\nE_phnum: \0");
+	_write_register_to_uart_literal_wrapper(eh.e_phnum, 0, 5);
+	_write_uart_wrapper("\nE_phentsize: \0");
+	_write_register_to_uart_literal_wrapper(eh.e_phentsize, 0, 5);
 
 	for (int i=0; i<eh.e_phnum; i++) {
-		struct program_header ph = *(struct program_header*)(file_header + eh.e_phoff + (i * eh.e_phentsize));
-		// NOTE: calling these print functions will mess with the value :(
-		_write_uart("\nph.ptype: \0");
-		_write_register_to_uart_literal(ph.p_type, 0, 63);
+		// Note: In C, pointer arithmetic uses the pointer data type size implicitly. So, (uint32_t *)+1 will move the pointer
+		// sizeof(uint32_t) bytes over. We receive the program header offset and size as bytes. Therefore, we cast to uint8_t
+		// temporarily to easily define how many bytes we want to jump over, jump, and then re-cast back to appropriate pointer
+		struct program_header ph = *(struct program_header*)(
+			(uint8_t*)file_header
+			+ (eh.e_phoff/sizeof(uint8_t))
+			+ (i * (eh.e_phentsize/sizeof(uint8_t)))
+		);
+		_write_uart_wrapper("\nph.ptype: \0");
+		_write_register_to_uart_literal_wrapper(ph.p_type, 0, 5);
 		
 		if (ph.p_type == 1) { // should load into memory
 			uint64_t size_to_allocate = ph.p_memsz;
+			// May need to map to page size
 			uint64_t virtual_address = ph.p_vaddr;
 			uint64_t flags = ph.p_flags;
 
-			_write_uart("\nSize to allocate: \0");
-			_write_register_to_uart_literal(size_to_allocate, 0, 63);
+			_write_uart_wrapper("\nSize to allocate: \0");
+			_write_register_to_uart_literal_wrapper(size_to_allocate, 0, 10);
 			
-			// Only support 4kB pages right now
-			if (size_to_allocate != 4096) {
-				_write_uart("\nUh-oh. Trying to allocate a non-4096 size page\0");
-				return 0;
-			}
-			
+			_write_uart_wrapper("\nAllocating memory \0");
 			uint64_t physical_address = _kalloc();
 			// Ignore rwx flags for now
-			_map_virtual_address_to_physical_address(virtual_address, physical_address);
+			_write_uart_wrapper("\nVirtual address: \0");
+			_write_register_to_uart_literal_wrapper(virtual_address, 0, 63);
+			_write_uart_wrapper("\nPhysical address: \0");
+			_write_register_to_uart_literal_wrapper(physical_address, 0, 63);
+			
+			// Map to user page
+			_map_virtual_address_to_physical_address(virtual_address, physical_address, 0b1111);
 		} else {
-			_write_uart("\nCan't load into memory because of ph.ptype: \0");
-			_write_register_to_uart_literal(ph.p_type, 0, 63);
+			_write_uart_wrapper("\nProgram header isn't of type 'Loadable segment', so skipping loading it. Program header type: \0");
+			_write_register_to_uart_literal_wrapper(ph.p_type, 0, 63);
 		}
 	}
 
+	_write_uart_wrapper("Finished parse_elf, returning...\0");
 	uint64_t entry = eh.e_entry;
 	return entry;
 }
