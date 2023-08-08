@@ -22,7 +22,7 @@ map_supervisor_virtual_addresses_message: .ascii "\nMapping virtual addresses fo
 jumping_to_elf_entry_message: .ascii "\nJumping to ELF entry at $ \0"
 
 # Unit tests helper strings
-begin_unit_test_message: .ascii "\n===== Beginning unit tests =====\n\0"
+begin_unit_test_message: .ascii "\n===== Beginning unit tests/sanity_checks =====\n\0"
 test_result_00: .ascii "\nShould print 'Welcome to PseudOS':\n\0"
 test_result_10: .ascii "\nShould be 0b00..000: \n\0"
 test_result_11: .ascii "\nShould be 0b00..01110:\n\0"
@@ -34,9 +34,9 @@ end_unit_test_message: .ascii "\n===== End unit tests =====\n\0"
 machine_trap_instruction_misaligned_warning: .ascii "Machine trap: instruction misaligned. Value: $ \n\0"
 machine_trap_instruction_access_fault_warning: .ascii "Machine trap: instruction access fault. Value $ \n\0"
 machine_trap_handler_illegal_instruction_fault_warning: .ascii "Machine trap: illegal instruction. Register binary is: \n\0"
-machine_trap_instruction_page_fault_warning: .ascii "Machine trap: instruction page fault. Mtval value is: $ \n\0"
-machine_trap_load_access_fault_warning: .ascii "Machine trap: load access fault. Virtual page address $ \n\0"
-machine_trap_handler_load_page_fault_warning: .ascii "Machine trap: load page fault. Mtval value is $ \n\0"
+machine_trap_instruction_page_fault_warning: .ascii "Machine trap: instruction page fault. Page: %h \n\0"
+machine_trap_load_access_fault_warning: .ascii "Machine trap: load access fault. Address %h \n\0"
+machine_trap_handler_load_page_fault_warning: .ascii "Machine trap: load page fault. Page is %h \n\0"
 machine_trap_handler_store_amo_page_fault_warning: .ascii "Machine trap: store/amo access fault. Mtval value is: $ \n\0"
 machine_trap_warning: .ascii "Warning, machine trap. Exception code: %, mtval: & \n Consider adding a specific handler for this trap. \n\0"
 
@@ -52,5 +52,5 @@ setup_pci_device_unknown_device_warning: .ascii "Detected PCI device with unknow
 number_char: .ascii "%\0"
 newline: .ascii "\n\0"
 debugging_message: .ascii "\nDebugging: \n\0"
-
+hex_map: .ascii "0\01\02\03\04\05\06\07\08\09\0A\0B\0C\0D\0E\0F\0"
 

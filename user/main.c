@@ -16,7 +16,7 @@ uint8_t c_add(uint8_t a, uint8_t b) {
 }
 
 extern void _write_uart_wrapper(char*);
-extern void _write_register_to_uart_literal_wrapper(uint64_t, uint64_t, uint64_t);
+extern void _write_register_to_uart_binary_wrapper(uint64_t, uint64_t, uint64_t);
 
 uint64_t fibonacci(uint64_t a, uint64_t b, uint64_t count) {
 	uint64_t c;
@@ -28,7 +28,7 @@ uint64_t fibonacci(uint64_t a, uint64_t b, uint64_t count) {
 		
 	}
 	_write_uart_wrapper("Next fibonacci number is: \0");
-	_write_register_to_uart_literal_wrapper(c, 0, 63);
+	_write_register_to_uart_binary_wrapper(c, 0, 63);
 	_write_uart_wrapper("\n\0");
 
 	return c;

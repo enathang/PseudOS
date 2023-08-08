@@ -52,7 +52,7 @@
 	mv a0, \reg_name
 	li a1, 0
 	li a2, 63
-	call _write_register_to_uart_literal
+	call _write_register_to_uart_binary
 	pop
 
 	print_newline
@@ -69,7 +69,7 @@
 	csrr a0, \reg_name
 	li a1, 0
 	li a2, 63
-	call _write_register_to_uart_literal
+	call _write_register_to_uart_binary
 	pop
 
 	print_newline

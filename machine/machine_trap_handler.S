@@ -52,13 +52,19 @@ _machine_trap:
 	_machine_trap_handler_load_access_fault:
 		la a0, machine_trap_load_access_fault_warning	
 		csrr a1, mtval
-		j _machine_trap_handler_write_uart
+		
+		push
+		call _write_uart_formatted
+		pop
+		ret
+		#j _machine_trap_handler_write_uart
 
 	_machine_trap_handler_instruction_page_fault:
 		la a0, machine_trap_instruction_page_fault_warning
 		csrr a1, mtval
+		
 		push
-		call _write_uart
+		call _write_uart_formatted
 		pop 
 		
 		ret
@@ -66,18 +72,13 @@ _machine_trap:
 		la a0, machine_trap_handler_load_page_fault_warning
 		csrr a1, mtval
 		push
-		call _write_uart
+		call _write_uart_formatted
 		pop
-
-		push
-		call _kalloc_wrapper
-		pop
-
 
 		print dump_heap_message
 		.extern dump_heap
 		push
-		la a0, _heap_counter
+		la a0, _heap_end
 		call dump_heap
 		pop
 
@@ -85,6 +86,8 @@ _machine_trap:
 		.extern dump_page_table
 		push
 		la a0, _root_page_table
+		li a1, 0
+		li a2, 2
 		call dump_page_table
 		pop
 

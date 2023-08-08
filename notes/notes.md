@@ -70,9 +70,11 @@ with what I've used so far in this code. As pointed out in the document, this is
 Well, I refactored the kernel into a few new files and am getting all sorts of access errors now :/ best guess atm is the imports are importing the data to the wrong part section(segment?) of the boot.S file. I'll compare against the last git commit to try and triangulate changes causing these issues.
 
 ## Todo
-- Write dump heap and dump page table functions to trigger on page fault
+- Investigate POSIX iterface
+- Add unit testing infrastructure to OS where it will fail if a unit test fails
+- Page table unit tests
+- Allocate page tables near malloc
 - Function sorta works in machine mode but page faults in supervisor mode
-- See output of function, change function until memory is being mapped correctly
 - (before or after) move to user-mode
 
 - Re-read RISCV ABI and calling conventions, and align code with that
@@ -84,6 +86,9 @@ Well, I refactored the kernel into a few new files and am getting all sorts of a
  - Figure out how to define constants as macros to improve code readability (ie PTE_SIZE rather than 8)
 
 ## Done Todo
+- Write dump heap and dump page table functions to trigger on page fault
+- Figure how to kalloc and add page to page table so supervisor can access it without infinitely recursing, since adding to page table calls kalloc
+    - Can I just add it during kalloc and because the page should already exist per mapping() call in machine, everything should be fine(ish)?
 - Get fibonacci unit test working
     - Now works; issue was my OS moved stack in opposite direction to gcc. So when I put stuff on the stack, the invoked C code, the stack would expand
     in the other direction and overwrite local variables. Thought of it during my nap (idling on my previously written comment that my stack direction

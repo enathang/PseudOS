@@ -27,7 +27,7 @@ _kalloc_wrapper:
 	call _kalloc
 	mv a2, a0
 	pop
-
+	
 	ret
 
 # a0 = physical address
