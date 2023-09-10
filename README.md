@@ -43,6 +43,8 @@ Get the status of specific CSR registers
 
     (gdb) info registers mstatus
 
+![pseudOS gdb thumbnail](notes/pseudOS_gdb_thumbnail.png)
+
 (Optional) Set up gdbgui (https://www.gdbgui.com/) to have a GUI not from the 80s. It also supports vim keybindings for those who prefer it to gdb's emacs bindings.
 
 Ref:
