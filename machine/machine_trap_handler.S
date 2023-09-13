@@ -66,6 +66,21 @@ _machine_trap:
 		push
 		call _write_uart_formatted
 		pop 
+
+		.extern dump_heap
+		push
+		la a0, _heap_end
+		call dump_heap
+		pop
+	
+		print dump_page_table_message
+		.extern dump_page_table
+		push
+		la a0, _root_page_table
+		li a1, 0
+		li a2, 2
+		call dump_page_table
+		pop	
 		
 		ret
 	_machine_trap_handler_load_page_fault:

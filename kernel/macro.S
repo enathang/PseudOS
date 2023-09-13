@@ -1,6 +1,5 @@
-# .define PTE_SIZE 8
-
 .macro push
+	# :+ ra, t0, t1, t2, t3, a0, a1
 	# Push ra, t0-3, and a0-1 onto stack
 	sd ra, -8(sp)
 	sd t0, -16(sp)

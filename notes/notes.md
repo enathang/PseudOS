@@ -69,8 +69,26 @@ with what I've used so far in this code. As pointed out in the document, this is
 
 Well, I refactored the kernel into a few new files and am getting all sorts of access errors now :/ best guess atm is the imports are importing the data to the wrong part section(segment?) of the boot.S file. I'll compare against the last git commit to try and triangulate changes causing these issues.
 
+There's a weird bug I'm running into where I'm trying to expand the macro definitions in the assembly for linting, but the riscv64-unknown-elf-gcc compiler refuses to do so (with -E preprocessing flag). There are errors thrown relating to macros during assembly (riscv64-unknown-elf-as) so I guess gcc is assuming macros will be defined as `#define` and not .macro, per C and not assembly?? Macro expansion is necessary for linting so this is annoying *grumble grumble*
+
+There's a weird bug I'm running into where I'm trying to expand the macro definitions in the assembly for linting, but the riscv64-unknown-elf-gcc compiler refuses to do so (with -E preprocessing flag). There are errors thrown relating to macros during assembly (riscv64-unknown-elf-as) so I guess gcc is assuming macros will be defined as `#define` and not .macro, per C and not assembly?? Macro expansion is necessary for linting so this is annoying *grumble grumble*
+
 ## Todo
+<<<<<<< Updated upstream:notes/notes.md
+<<<<<<< Updated upstream:notes/notes.md
 - Investigate POSIX iterface
+=======
+=======
+>>>>>>> Stashed changes:notes.md
+<<<<<<< Updated upstream:notes.md
+=======
+- ABI
+- unit tests
+
+<<<<<<< Updated upstream:notes/notes.md
+>>>>>>> Stashed changes:notes.md
+=======
+>>>>>>> Stashed changes:notes.md
 - Add unit testing infrastructure to OS where it will fail if a unit test fails
 - Page table unit tests
 - Allocate page tables near malloc
@@ -80,6 +98,14 @@ Well, I refactored the kernel into a few new files and am getting all sorts of a
 - Re-read RISCV ABI and calling conventions, and align code with that
 
 - Get c_main working in user mode, with traps to suervisor mode for system calls such as print
+<<<<<<< Updated upstream:notes/notes.md
+<<<<<<< Updated upstream:notes/notes.md
+=======
+>>>>>>> Stashed changes:notes/notes.md
+>>>>>>> Stashed changes:notes.md
+=======
+>>>>>>> Stashed changes:notes/notes.md
+>>>>>>> Stashed changes:notes.md
 - Inspect output ELF file to learn the different data segment parts
 - Get mandelbrot set or doom or keyboard working on kernel
 

@@ -1,6 +1,6 @@
 pseudOS: machine/boot.S user/main.c
 	# Commands required for the linter
-	riscv64-unknown-elf-gcc -include kernel/macro.S -E machine/boot.S -o build/boot_macros.S	
+	# riscv64-unknown-elf-gcc -include kernel/macro.S -E machine/boot.S -o build/boot_macros.S	
 
 	# Build kernel
 	riscv64-unknown-elf-gcc -c user/main.c -o build/main.o -mcmodel=medany
@@ -21,7 +21,7 @@ pseudOS: machine/boot.S user/main.c
 
 pseudOS_debug: machine/boot.S user/main.c
 	# Commands required for the linter
-	riscv64-unknown-elf-gcc -g -O0 -include kernel/macro.S -E machine/boot.S -o build/boot_macros.S	
+	# riscv64-unknown-elf-gcc -g -O0 -include kernel/macro.S -E machine/boot.S -o build/boot_macros.S	
 
 	# Build kernel
 	riscv64-unknown-elf-gcc -g -O0 -c user/main.c -o build/main.o -mcmodel=medany
