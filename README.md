@@ -17,6 +17,8 @@ See the `makefile` for compilation details
 Again, make should automatically run the OS. If you're constantly iterating on the code (like I am) and QEMU doesn't auto-quit on OS crash, I've included a `qemu destroyer` bash script which can run in another terminal tab and continuously `pkill`s qemu. Just a quality of life thing.
 
 ## Debugging
+![pseudOS gdb thumbnail](notes/pseudOS_gdb_thumbnail.png)
+
 If you want to inspect QEMU to see what's going on under the hood, use the following commands:
 
 First, run 
@@ -42,8 +44,6 @@ Skip to some interesting code with with
 Get the status of specific CSR registers
 
     (gdb) info registers mstatus
-
-![pseudOS gdb thumbnail](notes/pseudOS_gdb_thumbnail.png)
 
 (Optional) Set up gdbgui (https://www.gdbgui.com/) to have a GUI not from the 80s. It also supports vim keybindings for those who prefer it to gdb's emacs bindings.
 
