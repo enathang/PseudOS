@@ -14,6 +14,7 @@
 .endm
 
 .macro pop
+	# :- ra, t0, t1, t2, t3, a0, a1
 	li t0, 56
 	add sp, t0, sp
 

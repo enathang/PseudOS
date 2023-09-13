@@ -25,12 +25,6 @@ void dump_page_table(uint64_t* page_table_base_address, uint8_t depth, uint8_t m
 	uint64_t page_size = 4096;
 	uint64_t num_pte_entries = page_size / pte_size;
 	
-	for (uint8_t j = 0; j<depth; j++) {
-		_write_uart_wrapper("\t\0");
-	}
-
-	_write_uart_formatted("Detected page table of depth %s with base address %h \n\0", (uint64_t)depth, (uint64_t)page_table_base_address, 0);	
-		
 	if (depth > max_depth) {
 		for (uint8_t j = 0; j<depth; j++) {
 			_write_uart_wrapper("\t\0");
@@ -39,6 +33,13 @@ void dump_page_table(uint64_t* page_table_base_address, uint8_t depth, uint8_t m
 		_write_uart_wrapper("Exceeded max depth (probably due to loop in page table). \n\0");
 		return;
 	}
+	
+	for (uint8_t j = 0; j<depth; j++) {
+		_write_uart_wrapper("\t\0");
+	}
+
+	_write_uart_formatted("Detected page table of depth %h with base address %h \n\0", (uint64_t)depth, (uint64_t)page_table_base_address, 0);	
+		
 
 	for (uint64_t i=0; i<num_pte_entries; i++) {
 		uint64_t* pte_address = page_table_base_address + i; // Adds 64 bits *i
@@ -55,13 +56,14 @@ void dump_page_table(uint64_t* page_table_base_address, uint8_t depth, uint8_t m
 		for (uint8_t j = 0; j<depth; j++) {
 			_write_uart_wrapper("\t\0");
 		}
-		_write_register_to_uart_binary_wrapper(i, 0, 8);
 
 		if (rwx_bits == 0) {
+			_write_register_to_uart_binary_wrapper(i, 0, 8);
 			// Recurse down table
 			_write_uart_wrapper("\n\0");
 			dump_page_table((uint64_t*) address, depth+1, max_depth);
-		} else {
+		} else if (depth == max_depth) {
+			_write_register_to_uart_binary_wrapper(i, 0, 8);
 			// Output virtual address -> physical address mapping, depth, and urxw permissions
 			_write_uart_formatted("-> Physical address is: %h, rxw bits are %s, ubit is %s \n\0", address, rwx_bits, u_bit);
 		}

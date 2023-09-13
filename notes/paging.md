@@ -50,3 +50,15 @@ Notes:
 - Worth keeping in mind that each address addresses a byte (afaik). Therefore, when we say an address space is 4096 bits, it can
 address 4096 bytes of data (or 4kB).
 - If we wanted to enumerate each page table, so we never had to kalloc a new page table, it would take 1*512*(512^2)=a lot of pages.
+
+
+Okay, after doing what I should have done a week ago and looked at a textbook/MIT course (ref https://pdos.csail.mit.edu/6.828/2019/lec/l-vm.txt
+and the xv6 textbook), I've discovered the following information:
+- The infinite recursion of page tables is a pretty common problem. 
+- The kernel maintains a separate set of page-tables for each process and the kernel. When the kernel switches process (scheduler), it
+updates the satp register with the base address of the corresponding page table.
+- Note to use the sfence instruction right before/after swapping satp's so the TLB (translation lookaside buffer) is flushed and there aren't any
+security issues there
+- Kernels do use page tables, but mostly they map memory 1:1 with physical memory.
+- In addition to creating a page table for each process, the kernel maintains a stack for each process. It also allocates a stack guard
+page to prevent stack overflow

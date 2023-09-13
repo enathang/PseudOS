@@ -1,9 +1,11 @@
 // Take in address to ELF file
-void exec(void) {
-	// Check if address contains a valid elf file
-	// elf.is_valid_elf_file();
-	//
-	// Read sections of elf file, kalloc them, add them to page table, and write them
-	//
-	// go into user mode and run elf file
+#include <_types/_uint64_t.h>
+#include "process.h"
+
+void exec(uint64_t* file_header) {
+	struct process proc;
+	uint64_t* proc_root_page_table = kalloc();
+
+	proc.root_page_table = proc_root_page_table;
+
 }

@@ -17,16 +17,16 @@ _unit_tests:
 	pop
 
 	push
-	la a0, end_unit_test_message
-	call _write_uart
-	pop
-
-	push
 	call _test_stack
 	pop
 
 	push
 	call _test_dump_page_table
+	pop
+	
+	push
+	la a0, end_unit_test_message
+	call _write_uart
 	pop
 
 	ret

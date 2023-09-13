@@ -1,7 +1,7 @@
 .option norvc
 
-.include "kernel/constants.S"
 .include "kernel/macro.S"
+.include "kernel/constants.S"
 .include "kernel/uart.S"
 .include "kernel/pci.S"
 .include "kernel/vga.S"
@@ -34,6 +34,13 @@ _start:
 	j _main_init
 
 _main_init:
+	.option push
+	.option norelax
+	la gp, _data_start
+	li t0, 0x800
+	add gp, gp, t0
+	.option pop
+
 	# Initialize stack pointer
 	la sp, _stack
 
@@ -87,6 +94,7 @@ _supervisor_trap:
 	
 	wfi
 
+
 _output_hardware_info_entry:
 	print bootup_machine_hardware_info
 
@@ -113,7 +121,7 @@ _output_hardware_info_entry:
 	_conditional_uart_write:
 		push
 		li t0, 0x10000000
-		sb a0, (t0)
+		sb a0, 0(t0)
 		pop
 		j _after_uart_write
 	
@@ -234,7 +242,7 @@ _setup_page_table:
 	li t1, 8
 	mul t0, t0, t1 # multiply by page size to get PTE offset
 	add t0, t0, t4 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
+	sd t5, 0(t0)    # Store PTE for page table 0 at PTE address
 
 	# === Add a new level-1 page table ===
 	push
@@ -258,7 +266,7 @@ _setup_page_table:
 	li t1, 8
 	mul t0, t0, t1 # multiply by page size to get PTE offset
 	add t0, t0, s0 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
+	sd t5, 0(t0)    # Store PTE for page table 0 at PTE address
 
 	# === Add level-2 page table to level-0 page table ===
 	la t4, _root_page_table
@@ -277,7 +285,7 @@ _setup_page_table:
 	li t1, 8
 	mul t0, t0, t1 # multiply by page size to get PTE offset
 	add t0, t0, s0 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
+	sd t5, 0(t0)    # Store PTE for page table 0 at PTE address
 
 
 
@@ -297,11 +305,11 @@ _setup_page_table:
 	li t1, 8
 	mul t0, t0, t1 # multiply by page size to get PTE offset
 	add t0, t0, s1 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
+	sd t5, 0(t0)    # Store PTE for page table 0 at PTE address
 
 	# === Add level-2 page table to level-1-page table
 	# s0 contains level 0 page table address
-	/*push
+	push
 	la a0, _root_page_table
 	li a1, 0b000
 	call _convert_physical_address_to_pte
@@ -315,51 +323,51 @@ _setup_page_table:
 	li t1, 8
 	mul t0, t0, t1 # multiply by page size to get PTE offset
 	add t0, t0, s1 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
-	*/
+	sd t5, 0(t0)    # Store PTE for page table 0 at PTE address
+	
 
 
 
 
 	# === Add level-1 page table to level 2 page table
-	/*mv t4, s1
-	push
-	mv a0, t4
-	li a1, 0b000
-	call _convert_physical_address_to_pte
-	pop
-	mv t5, a2 # t5 now contains PTE
+	#mv t4, s1
+	#push
+	#mv a0, t4
+	#li a1, 0b000
+	#call _convert_physical_address_to_pte
+	#pop
+	#mv t5, a2 # t5 now contains PTE
 
 	# Add level-1 page table to level-2 page table
-	la t6, _root_page_table
-	srai t0, t4, 30
-	li t1, 0x1FF
-	and t0, t0, t1 # should be PTE index
-	li t1, 8
-	mul t0, t0, t1 # multiply by page size to get PTE offset
-	add t0, t0, t6 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
+	#la t6, _root_page_table
+	#srai t0, t4, 30
+	#li t1, 0x1FF
+	#and t0, t0, t1 # should be PTE index
+	#li t1, 8
+	#mul t0, t0, t1 # multiply by page size to get PTE offset
+	#add t0, t0, t6 # add PT base address to get PTE address
+	#sd t5, (t0)    # Store PTE for page table 0 at PTE address
 	
 
 	# === Add level-2 page table to level 2 page table
-	la t4, _root_page_table
-	push
-	mv a0, t4
-	li a1, 0b000
-	call _convert_physical_address_to_pte
-	pop
-	mv t5, a2 # t5 now contains PTE
+	#la t4, _root_page_table
+	#push
+	#mv a0, t4
+	#li a1, 0b000
+	#call _convert_physical_address_to_pte
+	#pop
+	#mv t5, a2 # t5 now contains PTE
 
 	# Add level-1 page table to level-2 page table
-	la t6, _root_page_table
-	srai t0, t4, 30
-	li t1, 0x1FF
-	and t0, t0, t1 # should be PTE index
-	li t1, 8
-	mul t0, t0, t1 # multiply by page size to get PTE offset
-	add t0, t0, t6 # add PT base address to get PTE address
-	sd t5, (t0)    # Store PTE for page table 0 at PTE address
-	*/
+	#la t6, _root_page_table
+	#srai t0, t4, 30
+	#li t1, 0x1FF
+	#and t0, t0, t1 # should be PTE index
+	#li t1, 8
+	#mul t0, t0, t1 # multiply by page size to get PTE offset
+	#add t0, t0, t6 # add PT base address to get PTE address
+	#sd t5, (t0)    # Store PTE for page table 0 at PTE address*/
+	
 
 
 
@@ -372,7 +380,19 @@ _setup_page_table:
 	call _map_virtual_address_to_physical_address
 	pop	
 
+	#/*push
+	#mv a0, s0
+	#mv a1, s0
+	#li a2, 0b0111
+	#call _map_virtual_address_to_physical_address
+	#pop	
 
+	#push
+	#mv a0, s1
+	#mv a1, s1
+	#li a2, 0b0111
+	#call _map_virtual_address_to_physical_address
+	#pop*/
 	
 
 	ret
@@ -412,6 +432,13 @@ _map_supervisor_virtual_addresses:
 	push
 	la a0, _write_uart
 	la a1, _write_uart
+	li a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+	
+	push
+	la a0, _write_uart_formatted
+	la a1, _write_uart_formatted
 	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop

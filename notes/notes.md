@@ -71,6 +71,7 @@ Well, I refactored the kernel into a few new files and am getting all sorts of a
 
 There's a weird bug I'm running into where I'm trying to expand the macro definitions in the assembly for linting, but the riscv64-unknown-elf-gcc compiler refuses to do so (with -E preprocessing flag). There are errors thrown relating to macros during assembly (riscv64-unknown-elf-as) so I guess gcc is assuming macros will be defined as `#define` and not .macro, per C and not assembly?? Macro expansion is necessary for linting so this is annoying *grumble grumble*
 
+<<<<<<< Updated upstream
 There's a weird bug I'm running into where I'm trying to expand the macro definitions in the assembly for linting, but the riscv64-unknown-elf-gcc compiler refuses to do so (with -E preprocessing flag). There are errors thrown relating to macros during assembly (riscv64-unknown-elf-as) so I guess gcc is assuming macros will be defined as `#define` and not .macro, per C and not assembly?? Macro expansion is necessary for linting so this is annoying *grumble grumble*
 
 ## Todo
@@ -89,6 +90,12 @@ There's a weird bug I'm running into where I'm trying to expand the macro defini
 >>>>>>> Stashed changes:notes.md
 =======
 >>>>>>> Stashed changes:notes.md
+=======
+## Todo
+- ABI
+- unit tests
+
+>>>>>>> Stashed changes
 - Add unit testing infrastructure to OS where it will fail if a unit test fails
 - Page table unit tests
 - Allocate page tables near malloc
