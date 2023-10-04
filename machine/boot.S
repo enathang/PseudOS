@@ -465,13 +465,6 @@ _map_supervisor_virtual_addresses:
 	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
-
-	push
-	la a0, _heap_counter
-	la a1, _heap_counter
-	la a2, 0b0111
-	call _map_virtual_address_to_physical_address
-	pop
 	
 	push
 	la a0, _heap_end

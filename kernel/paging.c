@@ -16,6 +16,7 @@ void kfree(uint64_t* addr, uint64_t* free_list_head) {
 	//_write_uart_formatted("Addr pointer is %h, addr_value is %h\n" , (uint64_t)addr, *addr, 0);
 	*addr = *free_list_head;
 	//_write_uart_formatted("Addr pointer is %h, addr_value is %h\n" , (uint64_t)addr, *addr, 0);
+	//_write_uart_formatted("Addr pointer is %h, addr_value is %h\n" , (uint64_t)(addr+1), *(addr+1), 0);
 	*free_list_head = (uint64_t) addr;
 	//_write_uart_formatted("Head is %h, next is %h\n\n", (uint64_t)free_list_head, *free_list_head, 0);
 

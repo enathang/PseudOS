@@ -1,6 +1,4 @@
 #include <stdint.h>
-extern uint64_t* _heap_counter;
-//extern uint64_t* _heap_end;
 
 extern void _write_uart_wrapper(char*);
 extern void _write_uart_formatted(char*, uint64_t, uint64_t, uint64_t);
@@ -8,13 +6,11 @@ extern void _write_register_to_uart_hex_wrapper(uint64_t);
 extern void _write_register_to_uart_binary_wrapper(uint64_t, uint64_t, uint64_t);
 
 void dump_heap(uint64_t* _heap_end) {
-	uint64_t* heap_count = _heap_counter;
-	_write_uart_formatted("Heap counter is %h \n\0", (uint64_t)_heap_counter, 0, 0);
-	
-	for (uint64_t i=0; i<(uint64_t)heap_count; i++) {
-		// since sizeof(uint64_t)=64, *64 is 4096 (1 page)
-		uint64_t* heap_page = _heap_end - (i*64);
-		_write_uart_formatted("Heap page %s at address %h contains data %h \n\0", i, (uint64_t)heap_page, *heap_page);
+	for (uint64_t i=0; i<512; i++) {
+		// since sizeof(uint64_t)=8, *512 is 4096 (1 page)
+		uint64_t* heap_page = _heap_end - (i*512);
+		_write_uart_formatted("Heap page at address %h ", (uint64_t)heap_page, *heap_page, 0);
+		_write_uart_formatted("contains data %h%h...\n", *heap_page, *(heap_page+1), 0);
 	}
 
 	return;
