@@ -47,6 +47,7 @@ SECTIONS {
 	PROVIDE(_memory_end = _memory_start + LENGTH(ram));
 	PROVIDE(_heap_end = _memory_end - 4096);
 	PROVIDE(_heap_counter = _heap_end + 8 );
+	PROVIDE(_free_list_head = _heap_end + 64);
 
 
 	PROVIDE(_vga_framebuffer = 0x50000000);

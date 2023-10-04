@@ -1,34 +1,39 @@
 
-# kalloc
-# Inputs: none
-# return: a0, the physical address of new 4kB page
-.globl _kalloc
-_kalloc:
-	# Increment heap counter
-	la t1, _heap_counter
-	lb t0, (t1)
+# Args: none
+_init_free_list:
+	la a0, _free_list_head # Arg 0 (free list*)
+	la a2, _heap_end       
+	li a1, -0x1000
+	add a2, a2, a1         # Arg 2 (address_end)
+	li a1, -0x1F0000       # memory size to allocate (just under 512 pages)
+	add a1, a1, a2         # Arg 1 (address_start)	
+	
+	# Free range
+	push
+	call kfreerange
+	mv a2, a0
+	pop
 
-	li t2, 1
-	add t0, t0, t2
-	sb t0, (t1)
+	# Print out done
+	push
+	mv a1, a2
+	la a0, free_range_message
+	call _write_uart_formatted
+	pop
 
-	# get address of new page based on heap counter
-	li t2, 4096
-	mul t0, t0, t2
-
-	# return address
-	la t1, _heap_end
-	sub a0, t1, t0
 	ret
+
 
 # A wrapper around kalloc to conform to my ABI, so I can switch kalloc to standard ABI
 _kalloc_wrapper:
+	.extern kalloc
 	push
-	call _kalloc
+	call kalloc
 	mv a2, a0
 	pop
 	
-	ret
+	ret	
+	
 
 # a0 = physical address
 # a1 = rwx bits

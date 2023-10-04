@@ -46,6 +46,8 @@ Get the status of specific CSR registers
     (gdb) info registers mstatus
 
 (Optional) Set up gdbgui (https://www.gdbgui.com/) to have a GUI not from the 80s. It also supports vim keybindings for those who prefer it to gdb's emacs bindings.
+    
+    /usr/local/bin/python3.9 -m pipx run gdbgui
 
 Ref:
 - https://spivey.oriel.ox.ac.uk/compilers/Single-stepping_with_QEMU_and_GDB

@@ -45,7 +45,6 @@ extern void _write_uart_wrapper(char*);
 extern void _write_register_to_uart_binary_wrapper(uint64_t, uint64_t, uint64_t);
 extern void _write_uart_formatted(char*, uint64_t, uint64_t, uint64_t);
 
-extern uint64_t _kalloc();
 extern void _map_virtual_address_to_physical_address(uint64_t, uint64_t, uint64_t);
 
 
@@ -80,7 +79,7 @@ uint64_t parse_elf(uint64_t* file_header) {
 			_write_register_to_uart_binary_wrapper(size_to_allocate, 0, 10);
 			
 			_write_uart_wrapper("\nAllocating memory \0");
-			uint64_t physical_address = _kalloc();
+			uint64_t physical_address = kalloc();
 			// Ignore rwx flags for now
 			_write_uart_formatted("Virtual address: %h, physical address: %h \n\0", virtual_address, physical_address, 0);
 			

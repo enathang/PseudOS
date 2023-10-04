@@ -19,6 +19,9 @@ _machine_trap:
 		li t1, 5
 		beq t0, t1, _machine_trap_handler_load_access_fault
 
+		li t1, 7
+		beq t0, t1, _machine_trap_handler_store_amo_access_fault
+
 		li t1, 12
 		beq t0, t1, _machine_trap_handler_instruction_page_fault
 
@@ -58,6 +61,16 @@ _machine_trap:
 		pop
 		ret
 		#j _machine_trap_handler_write_uart
+
+	_machine_trap_handler_store_amo_access_fault:
+		la a0, machine_trap_store_amo_access_fault
+		csrr a1, mtval
+
+		push
+		call _write_uart_formatted
+		pop
+		
+		ret
 
 	_machine_trap_handler_instruction_page_fault:
 		la a0, machine_trap_instruction_page_fault_warning

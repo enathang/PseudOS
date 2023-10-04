@@ -175,6 +175,10 @@ _move_to_supervisor_mode:
 	csrw mstatus, t0
 
 	push
+	call _init_free_list
+	pop
+
+	push
 	call _setup_page_table
 	pop
 	
@@ -218,15 +222,13 @@ _setup_page_table:
 
 
 
-
-
 	# Add new level-0 page table
 	push
 	call _kalloc_wrapper
 	pop
 	mv t4, a2 # t4 now contains base address for page table
 	mv s0, t4
-	
+
 	# === write level-0 page table into itself ===
 	push
 	mv a0, t4
