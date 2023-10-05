@@ -1,4 +1,6 @@
 #import <stdint.h>
+#import "paging.h"
+
 uint32_t ELF_MAGIC_NUMBER = 0x464C457F; // 0x7FELF in little endian
 
 struct elf_header {
@@ -49,15 +51,16 @@ extern void _map_virtual_address_to_physical_address(uint64_t, uint64_t, uint64_
 
 
 uint64_t parse_elf(uint64_t* file_header) {
-	_write_uart_wrapper("Beginning parse_elf...\n\0");
+	_write_uart_formatted("Beginning parse_elf with elf file at address %h...\n\0", (uint64_t) file_header, 0, 0);
 	struct elf_header eh = *(struct elf_header*)file_header;
 	
 	if (eh.magic_number != ELF_MAGIC_NUMBER) {
-		_write_uart_wrapper("Attempted to load ELF binary, but magic number was not correct. Skipping it.\n\0");
+		_write_uart_formatted("Attempted to load ELF binary, but magic number (%h) was not correct. Skipping it.\n\0", eh.magic_number, 0, 0);
 	}
 
-	_write_uart_formatted("Phnum: %s, phentsize: %s \n\0", eh.e_phnum, eh.e_phentsize, 0);
+	_write_uart_formatted("Phnum: %h, phentsize: %h \n\0", eh.e_phnum, eh.e_phentsize, 0);
 
+	// TODO: Create new page table for the process
 	for (int i=0; i<eh.e_phnum; i++) {
 		// Note: In C, pointer arithmetic uses the pointer data type size implicitly. So, (uint32_t *)+1 will move the pointer
 		// sizeof(uint32_t) bytes over. We receive the program header offset and size as bytes. Therefore, we cast to uint8_t
@@ -67,31 +70,28 @@ uint64_t parse_elf(uint64_t* file_header) {
 			+ (eh.e_phoff/sizeof(uint8_t))
 			+ (i * (eh.e_phentsize/sizeof(uint8_t)))
 		);
-		_write_uart_formatted("ph.ptype: %s \n\0", ph.p_type, 0, 0);
+		_write_uart_formatted("\tph.ptype: %h \n\0", ph.p_type, 0, 0);
 		
 		if (ph.p_type == 1) { // should load into memory
+			_write_uart_wrapper("\t\tShould load into memory\n");
 			uint64_t size_to_allocate = ph.p_memsz;
 			// May need to map to page size
 			uint64_t virtual_address = ph.p_vaddr;
 			uint64_t flags = ph.p_flags;
-
-			_write_uart_wrapper("\nSize to allocate: \0");
-			_write_register_to_uart_binary_wrapper(size_to_allocate, 0, 10);
+			_write_uart_formatted("\t\tSize to allocate: %h\n", size_to_allocate, 0, 0);	
+			_write_uart_wrapper("\t\tAllocating memory... \n");
+			uint64_t* physical_address = kalloc();
+			_write_uart_formatted("\t\tVirtual address: %h, physical address: %h \n\0", virtual_address, (uint64_t)physical_address, 0);
 			
-			_write_uart_wrapper("\nAllocating memory \0");
-			uint64_t physical_address = kalloc();
-			// Ignore rwx flags for now
-			_write_uart_formatted("Virtual address: %h, physical address: %h \n\0", virtual_address, physical_address, 0);
-			
-			// Map to user page
-			_map_virtual_address_to_physical_address(virtual_address, physical_address, 0b1111);
+			// Map to user page (ignore rxw flags specified in elf section for now)
+			// TODO: add mapping to process rather than kernel root table
+			_map_virtual_address_to_physical_address(virtual_address, (uint64_t)physical_address, 0b1111);
 		} else {
-			_write_uart_wrapper("\nProgram header isn't of type 'Loadable segment', so skipping loading it. Program header type: \0");
-			_write_register_to_uart_binary_wrapper(ph.p_type, 0, 63);
+			_write_uart_formatted("\t\tProgram header type (%h) isn't of type 'Loadable segment', so skipping loading it. \n", ph.p_type, 0, 0);
 		}
 	}
 
-	_write_uart_wrapper("Finished parse_elf, returning...\0");
+	_write_uart_wrapper("Finished parse_elf, returning...\n\n\0");
 	uint64_t entry = eh.e_entry;
 	return entry;
 }

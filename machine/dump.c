@@ -7,8 +7,9 @@ extern void _write_register_to_uart_binary_wrapper(uint64_t, uint64_t, uint64_t)
 
 void dump_heap(uint64_t* _heap_end) {
 	for (uint64_t i=0; i<512; i++) {
-		// since sizeof(uint64_t)=8, *512 is 4096 (1 page)
-		uint64_t* heap_page = _heap_end - (i*512);
+		// since sizeof(uint64_t)=8 bytes, *512 is 4096 bytes (1 page)
+		// note sizeof(uint64_t) == sizeof(uint64_t*) on 64 bit machine
+		uint64_t* heap_page = _heap_end - ((i+1)*512);
 		_write_uart_formatted("Heap page at address %h ", (uint64_t)heap_page, *heap_page, 0);
 		_write_uart_formatted("contains data %h%h...\n", *heap_page, *(heap_page+1), 0);
 	}

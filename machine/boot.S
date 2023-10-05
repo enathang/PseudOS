@@ -187,20 +187,19 @@ _move_to_supervisor_mode:
 	call _map_supervisor_virtual_addresses
 	pop
 
+	push
+	call _list_pci_ecam
+	pop
 
 	# Jump to MPP mode (which should be supervisor mode)
 	push
 	la a0, jump_into_supervisor_mode
 	call _write_uart
 	pop
-
-	push
-	call _list_pci_ecam
-	pop
-
 	mret
 
-	ret
+	wfi
+	//ret
 
 
 _setup_page_table:
@@ -418,6 +417,25 @@ _map_supervisor_virtual_addresses:
 	pop
 
 	push
+	la a0, _elf_start
+	la a1, _elf_start
+	li a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+
+	// TODO: Currently we map 2 pages to themselves to cover elf file, we should move to 
+	//       mapping range to itself similar to how we map heap to itself
+	push 	
+	la a0, _elf_start
+	la a1, _elf_start
+	li t0, 0x1000
+	add a0, a0, t0
+	add a1, a1, t0
+	li a2, 0b0111
+	call _map_virtual_address_to_physical_address
+	pop
+
+	push
 	la a0, supervisor_mode_welcome
 	la a1, supervisor_mode_welcome
 	li a2, 0b0111
@@ -441,13 +459,6 @@ _map_supervisor_virtual_addresses:
 	push
 	la a0, _write_uart_formatted
 	la a1, _write_uart_formatted
-	li a2, 0b0111
-	call _map_virtual_address_to_physical_address
-	pop
-
-	push
-	la a0, _elf_start
-	la a1, _elf_start
 	li a2, 0b0111
 	call _map_virtual_address_to_physical_address
 	pop
@@ -478,6 +489,18 @@ _map_supervisor_virtual_addresses:
 	la a1, _write_register_to_uart_binary
 	la a2, 0b0111
 	call _map_virtual_address_to_physical_address
+	pop
+
+	# Map heap to itself
+	push
+	la a0, _heap_end
+	li t0, -0x1F0000
+	add a0, a0, t0 # VA start
+	mv a1, a0      # PA start
+	li a2, 512     # num pages
+	csrr a3, satp  # satp
+	.extern map_virtual_address_range_to_physical_address_range
+	call map_virtual_address_range_to_physical_address_range
 	pop
 
 	ret

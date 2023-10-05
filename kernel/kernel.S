@@ -8,9 +8,9 @@ _supervisor_mode_entry:
 	call _write_uart
 	
 	# Load elf file and jump to user mode
+	push
 	.extern parse_elf
 	la a0, _elf_start
-	push
 	call parse_elf
 	mv a2, a0
 	pop
@@ -24,5 +24,5 @@ _move_to_user_mode:
 	# Set SPP bit to 0
 	# Set sepc to a0
 
-	#
-	sret
+	wfi # TODO: Setup and jump to user mode
+	#sret

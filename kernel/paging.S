@@ -2,9 +2,7 @@
 # Args: none
 _init_free_list:
 	la a0, _free_list_head # Arg 0 (free list*)
-	la a2, _heap_end       
-	li a1, -0x1000
-	add a2, a2, a1         # Arg 2 (address_end)
+	la a2, _heap_end       # Arg 2 (address_end)
 	li a1, -0x1F0000       # memory size to allocate (just under 512 pages)
 	add a1, a1, a2         # Arg 1 (address_start)	
 	
